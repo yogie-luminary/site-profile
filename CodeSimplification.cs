@@ -3,25 +3,45 @@
 
 namespace CodeSimplification
 {
+    // Interface to ensure type safety instead of using dynamic
+    public interface IMediaSource
+    {
+        bool UseVideoAsBackground { get; }
+        IImageData Image { get; }
+        IVideoData Video { get; }
+    }
+
+    public interface IImageData
+    {
+        string GetImageOrDefaultUrl();
+    }
+
+    public interface IVideoData
+    {
+        string Src { get; }
+    }
+
     public class ProgramHeaderExample
     {
         // ORIGINAL CODE (Complex with redundant conditionals)
-        public void OriginalCode(bool useWidgetData, dynamic programHeader)
+        // Note: Using IMediaSource for the example. In real code, you might have
+        // a ProgramHeader class with a Program property of the same type.
+        public void OriginalCode(bool useWidgetData, IMediaSource programHeader, IMediaSource program)
         {
-            var useVideoBackground = useWidgetData ? programHeader.UseVideoAsBackground : programHeader.Program.UseVideoAsBackground;
+            var useVideoBackground = useWidgetData ? programHeader.UseVideoAsBackground : program.UseVideoAsBackground;
             var imageUrl = useWidgetData ?
                            ! programHeader.UseVideoAsBackground ? programHeader.Image.GetImageOrDefaultUrl() : string.Empty 
-                           : ! programHeader.Program.UseVideoAsBackground ? programHeader.Program.Image.GetImageOrDefaultUrl() : string.Empty;
+                           : ! program.UseVideoAsBackground ? program.Image.GetImageOrDefaultUrl() : string.Empty;
             var videoUrl = useWidgetData ?
                            programHeader.UseVideoAsBackground ? programHeader.Video.Src : string.Empty
-                           : programHeader.Program.UseVideoAsBackground ? programHeader.Program.Video.Src : string.Empty;
+                           : program.UseVideoAsBackground ? program.Video.Src : string.Empty;
         }
 
         // SIMPLIFIED CODE (Clean and maintainable)
-        public void SimplifiedCode(bool useWidgetData, dynamic programHeader)
+        public void SimplifiedCode(bool useWidgetData, IMediaSource programHeader, IMediaSource program)
         {
             // Extract the data source once based on the condition
-            var dataSource = useWidgetData ? programHeader : programHeader.Program;
+            var dataSource = useWidgetData ? programHeader : program;
             
             // Now use the data source consistently
             var useVideoBackground = dataSource.UseVideoAsBackground;

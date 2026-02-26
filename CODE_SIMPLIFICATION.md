@@ -28,17 +28,27 @@ var videoUrl = useWidgetData ?
 
 ## Solution
 
-Extract the data source selection into a single variable, then use it consistently:
+Extract the data source selection into a single variable, then use it consistently. For better type safety, use interfaces instead of dynamic types:
 
 ```csharp
+// Define interfaces for type safety
+public interface IMediaSource
+{
+    bool UseVideoAsBackground { get; }
+    IImageData Image { get; }
+    IVideoData Video { get; }
+}
+
 // Extract the data source once based on the condition
-var dataSource = useWidgetData ? programHeader : programHeader.Program;
+var dataSource = useWidgetData ? programHeader : program;
 
 // Now use the data source consistently
 var useVideoBackground = dataSource.UseVideoAsBackground;
 var imageUrl = !useVideoBackground ? dataSource.Image.GetImageOrDefaultUrl() : string.Empty;
 var videoUrl = useVideoBackground ? dataSource.Video.Src : string.Empty;
 ```
+
+**Key Improvement**: By using an interface (`IMediaSource`), we maintain compile-time type safety while still achieving the simplification. This is superior to using `dynamic` which would lose type checking.
 
 ## Benefits of the Simplified Approach
 
@@ -85,9 +95,10 @@ Both code versions produce identical results:
 
 1. **Identify the Pattern**: Look for repeated conditional checks on the same variable
 2. **Extract Common Logic**: Move the conditional to a single location
-3. **Use Descriptive Names**: Choose variable names that clearly indicate their purpose
-4. **Test Thoroughly**: Ensure the refactored code behaves identically to the original
-5. **Document the Change**: Explain why the simplification improves the code
+3. **Use Type-Safe Abstractions**: Prefer interfaces over `dynamic` for type safety
+4. **Use Descriptive Names**: Choose variable names that clearly indicate their purpose
+5. **Test Thoroughly**: Ensure the refactored code behaves identically to the original
+6. **Document the Change**: Explain why the simplification improves the code
 
 ## Conclusion
 

@@ -96,8 +96,8 @@ namespace CodeSimplification.Tests
                 original.imageUrl == simplified.imageUrl &&
                 original.videoUrl == simplified.videoUrl;
             
-            Console.WriteLine($"Original   - Video: {original.useVideoBackground}, Image: {original.imageUrl}, Video: {original.videoUrl}");
-            Console.WriteLine($"Simplified - Video: {simplified.useVideoBackground}, Image: {simplified.imageUrl}, Video: {simplified.videoUrl}");
+            Console.WriteLine($"Original   - UseVideo: {original.useVideoBackground}, ImageUrl: {original.imageUrl}, VideoUrl: {original.videoUrl}");
+            Console.WriteLine($"Simplified - UseVideo: {simplified.useVideoBackground}, ImageUrl: {simplified.imageUrl}, VideoUrl: {simplified.videoUrl}");
             Console.WriteLine($"Match: {(resultsMatch ? "✓ PASS" : "✗ FAIL")}");
             
             if (!resultsMatch)
@@ -124,7 +124,10 @@ namespace CodeSimplification.Tests
             SimplifiedImplementation(bool useWidgetData, ProgramHeader programHeader)
         {
             // Extract the data source once based on the condition
-            var dataSource = useWidgetData ? programHeader : (dynamic)programHeader.Program;
+            // Using an interface would be better in production code to avoid this cast
+            IMediaSource dataSource = useWidgetData ? 
+                (IMediaSource)new MediaSourceAdapter(programHeader) : 
+                (IMediaSource)new MediaSourceAdapter(programHeader.Program);
             
             // Now use the data source consistently
             var useVideoBackground = dataSource.UseVideoAsBackground;
@@ -133,5 +136,61 @@ namespace CodeSimplification.Tests
             
             return (useVideoBackground, imageUrl, videoUrl);
         }
+    }
+
+    // Adapter to provide type-safe access without dynamic
+    public interface IMediaSource
+    {
+        bool UseVideoAsBackground { get; }
+        IImageData Image { get; }
+        IVideoData Video { get; }
+    }
+
+    public interface IImageData
+    {
+        string GetImageOrDefaultUrl();
+    }
+
+    public interface IVideoData
+    {
+        string Src { get; }
+    }
+
+    public class MediaSourceAdapter : IMediaSource
+    {
+        private readonly ProgramData _programData;
+        private readonly bool _isFromHeader;
+        private readonly ProgramHeader _header;
+
+        public MediaSourceAdapter(ProgramData data)
+        {
+            _programData = data;
+            _isFromHeader = false;
+        }
+
+        public MediaSourceAdapter(ProgramHeader header)
+        {
+            _header = header;
+            _isFromHeader = true;
+        }
+
+        public bool UseVideoAsBackground => _isFromHeader ? _header.UseVideoAsBackground : _programData.UseVideoAsBackground;
+        public IImageData Image => _isFromHeader ? (IImageData)new ImageDataAdapter(_header.Image) : new ImageDataAdapter(_programData.Image);
+        public IVideoData Video => _isFromHeader ? (IVideoData)new VideoDataAdapter(_header.Video) : new VideoDataAdapter(_programData.Video);
+    }
+
+    public class ImageDataAdapter : IImageData
+    {
+        private readonly ImageData _imageData;
+        public ImageDataAdapter(ImageData data) => _imageData = data;
+        public string GetImageOrDefaultUrl() => _imageData.GetImageOrDefaultUrl();
+    }
+
+    public class VideoDataAdapter : IVideoData
+    {
+        private readonly VideoData _videoData;
+        public VideoDataAdapter(VideoData data) => _videoData = data;
+        public string Src => _videoData.Src;
+    }
     }
 }
